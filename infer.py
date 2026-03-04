@@ -28,13 +28,8 @@ def load_model(checkpoint_path, device):
         best_val = state.get('best_val', float('inf'))
         print(f"[INFO] infer from {training_state}, best_val={best_val}")
     # load config if present
-    config_path = os.path.join(checkpoint_path, 'config.json')
-    config = PISCO_Config.from_json_file(config_path)
-    if config.architectures[0] == 'PISCO_AR_Model':
-        model = PISCO_AR_Model.from_pretrained(checkpoint_path)
-        is_AR = True
-    else:
-        model = PISCO_Model.from_pretrained(checkpoint_path)
+    model = PISCO_Model.from_pretrained(checkpoint_path)
+    config = model.config
     model.to(device)
     if config.use_species_distribution:
         codon_usage_path = CODON_USAGE_PATH
@@ -192,7 +187,7 @@ def save_results(results, output_path):
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--checkpoint', default='./checkpoint/finetune_seed0', help='Path to the model checkpoint')
+    parser.add_argument('--checkpoint', default='zero9998/PISCO-pretrain', help='Path to the model checkpoint')
     parser.add_argument('--test_input', default='./data/CodonTransformer_test_filtered.jsonl', help='Path to the test input dataset.if pdb_mode is set, should be a CSV file')
     parser.add_argument('--test_output', default='result/temp.csv', help='Path to save the inference results as CSV')
     parser.add_argument('--codon_usage_path', default='./Codon_Usage_kazusa.csv', help='Path to the codon usage CSV file')
