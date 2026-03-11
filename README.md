@@ -17,38 +17,28 @@ to generate optimized synonymous codon sequences.
 
 # Installation
 
-## 1. Internal Users (Sensecore Server)
-
-```bash
-conda activate /ai/share/workspace/wwtan/my_conda_env/PISCO
-```
-
----
-
-## 2. Standard Installation
-
-### Create environment
+## Create environment
 
 ```bash
 conda create -n pisco python=3.10 -y
 conda activate pisco
 ```
 
-### Install PyTorch (CUDA 12.4)
+## Install PyTorch (CUDA 12.4)
 
 ```bash
-pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+pip install torch==2.6.0 \
 --index-url https://download.pytorch.org/whl/cu124
 ```
 
-### Install PyTorch Geometric
+## Install PyTorch Geometric
 
 ```bash
-pip install pyg_lib torch_scatter torch_sparse torch_cluster \
+pip install torch_scatter torch_sparse torch_cluster \
 -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
 ```
 
-### Install remaining dependencies
+## Install remaining dependencies
 
 ```bash
 pip install -r requirements.txt
@@ -85,54 +75,38 @@ The goal of inference is to generate an **optimized RNA codon sequence** for a g
 Two modes are supported depending on whether reliable structures are available.
 
 ---
+## Case 1: Quick Test
 
-# Case 1: No Reliable Structure
-
-### Step 1: Preprocess protein sequences
-
-```bash
-python preprocess_data.py \
---input_csv data/Rubisco_AlphaFold_database.csv \
---jsonl_path data/Rubisco_AlphaFold_database.jsonl
-```
-
-Notes:
-
-- `pdb_path` column is optional
-- preprocessing takes about **10 seconds per protein**
-
----
-
-### Step 2: Run inference
+You can directly use the preprocessed test dataset `data/dataset_test.jsonl`, which already contains structural data.
 
 ```bash
 python infer.py \
 --checkpoint zero9998/PISCO-finetune \
---test_input data/Rubisco_AlphaFold_database.jsonl \
---test_output result/Rubisco_result.csv
+--test_input data/dataset_test.jsonl \
+--test_output result/test_result.csv
 ```
 
-The predicted RNA sequences will appear in:
+The predicted RNA sequences will appear in the:
 
 ```
 predicted_rna
 ```
 
-column of the output CSV.
+column of the output CSV file.
 
 ---
 
-# Case 2: Reliable Structures Available
+## Case 2: PDB Mode
 
-If high-quality structures exist, inference can be performed directly.
+You can also use a CSV file as input together with PDB structure files for inference (see `./data/Rubisco_AlphaFold_database.csv` and `./data/pdb/` for reference).
 
-Input CSV must contain:
+The input CSV must contain a column:
 
 ```
 pdb_path
 ```
 
-column pointing to `.pdb` files.
+which points to the corresponding `.pdb` files.
 
 Run:
 
@@ -143,8 +117,6 @@ python infer.py \
 --test_output result/Rubisco_result.csv \
 --pdb_mode
 ```
-
----
 
 # Output Metrics
 
@@ -215,9 +187,8 @@ PISCO
 ├─ codon_frequencies_kazusa.jsonl
 ├─ Codon_Usage_kazusa.csv
 ├─ infer.py
-├─ preprocess_data.py
-├─ run_hf.py(TODO)
-├─ finetune.py(TODO)
+├─ run_hf.py(TO ADD)
+├─ finetune.py(TO ADD)
 └─ requirements.txt
 ```
 

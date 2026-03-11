@@ -2,5 +2,5 @@ biopython==1.85
 CAI_PyPI==2.0.1
 fastdtw==0.3.4
 mdanalysis==2.9.0
-torch_geometric==2.2.0
+pandas==2.3.3
 transformers==4.56.2
