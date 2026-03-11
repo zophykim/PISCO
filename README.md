@@ -1,90 +1,225 @@
 # PISCO
-Protein structure Informed Species-specific Codon Optimization
 
+**P**rotein **S**tructure **I**nformed **S**pecies-specific **C**odon **O**ptimization
 
-## Get environment ready
-1. For internal users (sensecore server)
-   ```sh
-    conda activate /ai/share/workspace/wwtan/my_conda_env/PISCO
-   ```
+PISCO is a deep learning model for **species-aware codon optimization** that integrates:
 
-2. For all users
-   ```sh
-    # Create Conda Environment
-    conda create -n project_env python=3.10 -y
-    conda activate project_env
+- protein sequence
+- protein 3D structure
+- organism-specific codon usage
 
-    # Install PyTorch (CUDA 12.4)
-    pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
-    --index-url https://download.pytorch.org/whl/cu124
+to generate optimized synonymous codon sequences.
 
-    # Install PyG dependencies
-    pip install pyg_lib torch_scatter torch_sparse torch_cluster \
-    -f https://data.pyg.org/whl/torch-2.6.0+cu124.html
+---
 
-    # Install remaining packages
-    pip install -r requirements.txt
-   ```
+# Installation
 
-## Model Checkpoints
-
-Pretrained and finetuned checkpoints are available on Hugging Face:
-
-- Finetuned model:  
-  https://huggingface.co/zero9998/PISCO-finetune
-
-- Pretrained model:  
-  https://huggingface.co/zero9998/PISCO-pretrain
-
-You can directly load them using:
+## 1. Internal Users (Sensecore Server)
 
 ```bash
---checkpoint 'zero9998/PISCO-finetune'
+conda activate /ai/share/workspace/wwtan/my_conda_env/PISCO
 ```
-Hugging Face will automatically download the model.
 
-## Steps to inference the optimized codon sequence
-### Case1: No reliable structure
-1. Preprocess the protein sequence data
-   ```sh
-    python preprocess_data.py --input_csv data/Rubisco_AlphaFold_database.csv --jsonl_path data/Rubisco_AlphaFold_database.jsonl
-   ```
-The pdb_path column can be omitted in this case.
-Each sample (protein sequence) requires approximately 10 seconds to process.
+---
 
-2. Inference the optimized codon sequence
-   ```sh
-    python infer.py --checkpoint 'zero9998/PISCO-finetune' --test_input data/Rubisco_AlphaFold_database.jsonl --test_output result/Rubisco_AlphaFold_database_label.csv
-   ```
-The predicted RNA sequences can be found int he output table.
+## 2. Standard Installation
 
-### Case2: Reliable structures are available
-1. Inference the optimized codon sequence directly
-   ```sh
-    python infer.py --checkpoint 'chekpoint/zero9998/PISCO-finetune' --test_input data/Rubisco_AlphaFold_database.csv --test_output result/Rubisco_AlphaFold_database_label.csv --pdb_mode
-   ```
-The pdb_path column is required in this case, containing the path to your pdb file.
-The predicted RNA sequences can be found int he output table.
+### Create environment
 
-Note: When comparing protein sequences, refer to the 'predicted_score' column. The model prefers sequences with higher scores.
+```bash
+conda create -n pisco python=3.10 -y
+conda activate pisco
+```
 
-## Steps to training model
+### Install PyTorch (CUDA 12.4)
 
-### pretrain
+```bash
+pip install torch==2.6.0 torchvision==0.21.0 torchaudio==2.6.0 \
+--index-url https://download.pytorch.org/whl/cu124
+```
 
-   ```sh
-    python run_hf.py --train 
+### Install PyTorch Geometric
 
-    # species distribution version:
-    python run_hf.py --train --use-sd
-    
-   ```
+```bash
+pip install pyg_lib torch_scatter torch_sparse torch_cluster \
+-f https://data.pyg.org/whl/torch-2.6.0+cu124.html
+```
 
-### finetune
+### Install remaining dependencies
 
-   ```sh
-    python finetune.py --pretrained './models_hf/pretrain_2025-11-26 06:10:40_seed0_subepoch2_sd'
-    # species distribution version:  
-    python finetune.py --pretrained './models_hf/pretrain_2025-11-26 06:28:37_seed42_subepoch3'
-   ```
+```bash
+pip install -r requirements.txt
+```
 
+---
+
+# Model Checkpoints
+
+Pretrained models are hosted on Hugging Face.
+
+### Finetuned Model
+
+https://huggingface.co/zero9998/PISCO-finetune
+
+### Pretrained Model
+
+https://huggingface.co/zero9998/PISCO-pretrain
+
+Example usage:
+
+```bash
+--checkpoint zero9998/PISCO-finetune
+```
+
+The model will automatically download from Hugging Face.
+
+---
+
+# Inference
+
+The goal of inference is to generate an **optimized RNA codon sequence** for a given protein.
+
+Two modes are supported depending on whether reliable structures are available.
+
+---
+
+# Case 1: No Reliable Structure
+
+### Step 1: Preprocess protein sequences
+
+```bash
+python preprocess_data.py \
+--input_csv data/Rubisco_AlphaFold_database.csv \
+--jsonl_path data/Rubisco_AlphaFold_database.jsonl
+```
+
+Notes:
+
+- `pdb_path` column is optional
+- preprocessing takes about **10 seconds per protein**
+
+---
+
+### Step 2: Run inference
+
+```bash
+python infer.py \
+--checkpoint zero9998/PISCO-finetune \
+--test_input data/Rubisco_AlphaFold_database.jsonl \
+--test_output result/Rubisco_result.csv
+```
+
+The predicted RNA sequences will appear in:
+
+```
+predicted_rna
+```
+
+column of the output CSV.
+
+---
+
+# Case 2: Reliable Structures Available
+
+If high-quality structures exist, inference can be performed directly.
+
+Input CSV must contain:
+
+```
+pdb_path
+```
+
+column pointing to `.pdb` files.
+
+Run:
+
+```bash
+python infer.py \
+--checkpoint zero9998/PISCO-finetune \
+--test_input data/Rubisco_AlphaFold_database.csv \
+--test_output result/Rubisco_result.csv \
+--pdb_mode
+```
+
+---
+
+# Output Metrics
+
+The output CSV contains:
+
+| Column | Description |
+|------|------|
+| predicted_rna | predicted optimized RNA |
+| predicted_score | model preference score |
+| predicted_CSI | codon similarity index |
+| predicted_GC% | GC content |
+| predicted_CFD | codon frequency distribution |
+| predicted_COUSIN | codon usage similarity |
+
+When comparing different protein sequences:
+
+**Higher `predicted_score` indicates a better codon sequence according to the model.**
+
+---
+
+# Training
+
+## Pretraining
+
+```bash
+python run_hf.py --train
+```
+
+With species distribution:
+
+```bash
+python run_hf.py --train --use-sd
+```
+
+---
+
+## Finetuning
+
+```bash
+python finetune.py \
+--pretrained ./models_hf/pretrain_xxx
+```
+
+Species distribution version:
+
+```bash
+python finetune.py \
+--pretrained ./models_hf/pretrain_xxx \
+--use-sd
+```
+
+---
+
+# Project Structure
+
+```
+PISCO
+│
+├─ data/
+│  ├─ pdb/
+│  ├─ dataset_test.jsonl
+│  ├─ Rubisco_AlphaFold_database.csv
+├─ pisco/
+│  ├─ models
+│  ├─ data
+├─ result/
+├─ src/
+├─ codon_frequencies_kazusa.jsonl
+├─ Codon_Usage_kazusa.csv
+├─ infer.py
+├─ preprocess_data.py
+├─ run_hf.py(TODO)
+├─ finetune.py(TODO)
+└─ requirements.txt
+```
+
+---
+
+# Citation
+
+If you use PISCO in your research, please cite the corresponding paper.

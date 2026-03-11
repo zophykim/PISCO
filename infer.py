@@ -1,3 +1,144 @@
+"""
+===========================================================
+PISCO Inference Script
+Protein Structure Informed Species-specific Codon Optimization
+===========================================================
+
+This script performs inference using a trained PISCO model to
+generate optimized codon (RNA) sequences for protein sequences.
+
+The model uses:
+- protein sequence
+- optional 3D structure (PDB)
+- organism-specific codon usage
+to predict optimized synonymous codons.
+
+-----------------------------------------------------------
+Basic Usage
+-----------------------------------------------------------
+
+Case 1: No reliable protein structure
+
+Step 1: Preprocess protein sequences
+    python preprocess_data.py \
+        --input_csv data/protein.csv \
+        --jsonl_path data/protein.jsonl
+
+Step 2: Run inference
+    python infer.py \
+        --checkpoint zero9998/PISCO-finetune \
+        --test_input data/protein.jsonl \
+        --test_output result/prediction.csv
+
+
+Case 2: Protein structures are available
+
+Input CSV must contain a column:
+    pdb_path : path to structure file (.pdb)
+
+Run directly:
+
+    python infer.py \
+        --checkpoint zero9998/PISCO-finetune \
+        --test_input data/protein.csv \
+        --test_output result/prediction.csv \
+        --pdb_mode
+
+
+-----------------------------------------------------------
+Arguments
+-----------------------------------------------------------
+
+--checkpoint
+    Path or HuggingFace repo name of the trained model
+
+    Examples:
+        zero9998/PISCO-finetune
+        zero9998/PISCO-pretrain
+        ./checkpoints/model_xxx
+
+--test_input
+    Input dataset file
+
+    Supported formats:
+        jsonl  : preprocessed dataset
+        csv    : raw dataset (requires --pdb_mode)
+
+--test_output
+    Output CSV file containing prediction results
+
+--codon_usage_path_plug
+    Codon usage table used when organism not found in training set
+
+--label_mode
+    If enabled:
+        - compute prediction accuracy
+        - output natural RNA sequence
+        - compute CSI / CFD / COUSIN metrics
+
+--pdb_mode
+    Use when input is CSV with pdb_path column
+
+
+-----------------------------------------------------------
+Output CSV Columns
+-----------------------------------------------------------
+
+idx
+    protein identifier
+
+protein
+    amino acid sequence
+
+organism
+    organism name
+
+len
+    protein length
+
+rna
+    natural RNA sequence (if label_mode)
+
+predicted_rna
+    predicted optimized RNA sequence
+
+natural_CSI / predicted_CSI
+    Codon Similarity Index
+
+natural_GC% / predicted_GC%
+    GC content
+
+natural_CFD / predicted_CFD
+    Codon Frequency Distribution
+
+natural_COUSIN / predicted_COUSIN
+    Codon usage similarity
+
+DTW_distance
+    dynamic time warping distance of codon usage profile
+
+natural_score
+    model score of natural codon sequence
+
+predicted_score
+    model score of predicted codon sequence
+
+
+-----------------------------------------------------------
+Performance Notes
+-----------------------------------------------------------
+
+Typical runtime:
+    preprocessing: ~10s per protein
+    inference: GPU recommended
+
+Memory:
+    GPU recommended for large datasets
+
+-----------------------------------------------------------
+Author: PISCO Team
+===========================================================
+"""
 import argparse
 from email import parser
 import torch
@@ -87,7 +228,7 @@ def infer(model, dataset, device, label_mode, csv_output, codon_usage_path_plug=
 
                     cu = codon_usage_train.get(protein.organ, None)
                     if not cu:
-                        
+
                         cu = codon_usage_loader.load_codon_usage_from_csv(protein.organ,codon_usage_path_plug)
                     cu = ev.convert_codon_usgage_to_relative_weights(cu,True) if cu else None
                     if label_mode:
