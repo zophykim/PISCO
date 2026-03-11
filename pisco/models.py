@@ -405,6 +405,7 @@ class PISCO_Model(PreTrainedModel):
                             # 归一化
                             probs = values / values.sum(dim=1, keepdim=True)
                             self.cached_csv_probs[species_name] = probs.to(device)
+                        print(f'load {species_name} from codon_usage_plug')
                     probs_all = self.cached_csv_probs[species_name]
                     probs_per_node = probs_all[seq.long()]  # (N, 6)
 

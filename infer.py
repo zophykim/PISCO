@@ -17,7 +17,7 @@ import src.evaluation as ev
 import warnings
 warnings.filterwarnings("ignore")
 
-CODON_USAGE_PATH = "./codon_frequencies_kazusa.jsonl"
+CODON_USAGE_PATH_TRAIN = "./codon_frequencies_kazusa.jsonl"
 
 def load_model(checkpoint_path, device):
     is_AR = False
@@ -32,20 +32,20 @@ def load_model(checkpoint_path, device):
     config = model.config
     model.to(device)
     if config.use_species_distribution:
-        codon_usage_path = CODON_USAGE_PATH
-        probs, diagnostics = build_species_codon_probs_with_diagnosis(jsonl_path=codon_usage_path)
+        codon_usage_path_train = CODON_USAGE_PATH_TRAIN
+        probs, diagnostics = build_species_codon_probs_with_diagnosis(jsonl_path=codon_usage_path_train)
         model.set_species_codon_probs(probs)
-        print(f"[INFO] set species codon probs from {codon_usage_path}")
+        print(f"[INFO] set species codon probs from {codon_usage_path_train}")
 
     model.eval()
     return model,is_AR
 
-def infer(model, dataset, device, label_mode, csv_output, codon_usage_path='',is_AR=False):
+def infer(model, dataset, device, label_mode, csv_output, codon_usage_path_plug='',is_AR=False):
     print("Start inference on test set ...")
     data_count = 0
     acc_list = []
     codon_usage_loader = ev.CodonUsageLoader()
-    codon_usage_train = codon_usage_loader.load_all_species_codon_frequencies(CODON_USAGE_PATH)
+    codon_usage_train = codon_usage_loader.load_all_species_codon_frequencies(CODON_USAGE_PATH_TRAIN)
 
 
     print(f"\n========== STEP 3: Writing results to {csv_output} ==========")
@@ -72,7 +72,7 @@ def infer(model, dataset, device, label_mode, csv_output, codon_usage_path='',is
                         pred_codon,logits = model.infer(
                             h_V, protein.edge_index, h_E, protein.seq, protein.raw_seq,
                             species_id=protein.species_id, secstruct=protein.secstruct,
-                            species_name=protein.organ, csv_path=codon_usage_path
+                            species_name=protein.organ, csv_path=codon_usage_path_plug
                         )
                         pred_codon = pred_codon[0]
                         logits = logits[0]
@@ -80,14 +80,15 @@ def infer(model, dataset, device, label_mode, csv_output, codon_usage_path='',is
                         logits = model.infer(
                             h_V, protein.edge_index, h_E, protein.seq, protein.raw_seq,
                             species_id=protein.species_id, secstruct=protein.secstruct,
-                            species_name=protein.organ, csv_path=codon_usage_path
+                            species_name=protein.organ, csv_path=codon_usage_path_plug
                         )
                         pred_codon = torch.argmax(logits, dim=-1)
                     pred_rna = dataset.codon_indices_to_rna(protein.raw_seq, pred_codon.cpu().numpy())
 
                     cu = codon_usage_train.get(protein.organ, None)
                     if not cu:
-                        cu = codon_usage_loader.load_codon_usage_from_csv(protein.organ,codon_usage_path)
+                        
+                        cu = codon_usage_loader.load_codon_usage_from_csv(protein.organ,codon_usage_path_plug)
                     cu = ev.convert_codon_usgage_to_relative_weights(cu,True) if cu else None
                     if label_mode:
                         natural_rna = dataset.codon_indices_to_rna(protein.raw_seq, protein.codon.cpu().numpy())
@@ -188,9 +189,9 @@ def save_results(results, output_path):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--checkpoint', default='zero9998/PISCO-pretrain', help='Path to the model checkpoint')
-    parser.add_argument('--test_input', default='./data/CodonTransformer_test_filtered.jsonl', help='Path to the test input dataset.if pdb_mode is set, should be a CSV file')
+    parser.add_argument('--test_input', default='./data/dataset_test.jsonl', help='Path to the test input dataset.if pdb_mode is set, should be a CSV file')
     parser.add_argument('--test_output', default='result/temp.csv', help='Path to save the inference results as CSV')
-    parser.add_argument('--codon_usage_path', default='./Codon_Usage_kazusa.csv', help='Path to the codon usage CSV file')
+    parser.add_argument('--codon_usage_path_plug', default='./Codon_Usage_kazusa.csv', help='Path to the codon usage CSV file')
     parser.add_argument('--label_mode', action='store_true', help='If set, compute accuracy and output true rna')
     parser.add_argument('--pdb_mode',   action='store_true', help='If set, use PDB data for inference, for example, CSV input with PDB paths')
 
@@ -208,7 +209,7 @@ def main():
     else:
         test_data = pisco.data.LazyProteinCodonGraphDataset(args.test_input)
     print(len(test_data))
-    infer(model, test_data, device, args.label_mode, args.test_output, args.codon_usage_path,is_AR)
+    infer(model, test_data, device, args.label_mode, args.test_output, args.codon_usage_path_plug,is_AR)
     
 
 if __name__ == "__main__":

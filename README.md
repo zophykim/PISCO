@@ -1,6 +1,7 @@
 # PISCO
 Protein structure Informed Species-specific Codon Optimization
 
+
 ## Get environment ready
 1. For internal users (sensecore server)
    ```sh
@@ -25,25 +26,42 @@ Protein structure Informed Species-specific Codon Optimization
     pip install -r requirements.txt
    ```
 
+## Model Checkpoints
+
+Pretrained and finetuned checkpoints are available on Hugging Face:
+
+- Finetuned model:  
+  https://huggingface.co/zero9998/PISCO-finetune
+
+- Pretrained model:  
+  https://huggingface.co/zero9998/PISCO-pretrain
+
+You can directly load them using:
+
+```bash
+--checkpoint 'zero9998/PISCO-finetune'
+```
+Hugging Face will automatically download the model.
+
 ## Steps to inference the optimized codon sequence
 ### Case1: No reliable structure
 1. Preprocess the protein sequence data
    ```sh
-    python preprocess_data.py --input_csv data_demo/Rubisco_AlphaFold_database.csv --jsonl_path data_demo/Rubisco_AlphaFold_database.jsonl
+    python preprocess_data.py --input_csv data/Rubisco_AlphaFold_database.csv --jsonl_path data/Rubisco_AlphaFold_database.jsonl
    ```
 The pdb_path column can be omitted in this case.
 Each sample (protein sequence) requires approximately 10 seconds to process.
 
 2. Inference the optimized codon sequence
    ```sh
-    python infer.py --checkpoint 'chekpoint/pretrain_2025-11-26 06:10:40_seed0_subepoch153_sd' --test_input data_demo/Rubisco_AlphaFold_database.jsonl --test_output data_demo/Rubisco_AlphaFold_database_243_label.csv
+    python infer.py --checkpoint 'zero9998/PISCO-finetune' --test_input data/Rubisco_AlphaFold_database.jsonl --test_output result/Rubisco_AlphaFold_database_label.csv
    ```
 The predicted RNA sequences can be found int he output table.
 
 ### Case2: Reliable structures are available
 1. Inference the optimized codon sequence directly
    ```sh
-    python infer.py --checkpoint 'chekpoint/pretrain_2025-11-26 06:10:40_seed0_subepoch153_sd' --test_input data_demo/Rubisco_AlphaFold_database.csv --test_output data_demo/Rubisco_AlphaFold_database_232_label.csv --pdb_mode
+    python infer.py --checkpoint 'chekpoint/zero9998/PISCO-finetune' --test_input data/Rubisco_AlphaFold_database.csv --test_output result/Rubisco_AlphaFold_database_label.csv --pdb_mode
    ```
 The pdb_path column is required in this case, containing the path to your pdb file.
 The predicted RNA sequences can be found int he output table.
@@ -69,5 +87,4 @@ Note: When comparing protein sequences, refer to the 'predicted_score' column. T
     # species distribution version:  
     python finetune.py --pretrained './models_hf/pretrain_2025-11-26 06:28:37_seed42_subepoch3'
    ```
-
 
