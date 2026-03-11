@@ -10,6 +10,9 @@ PISCO is a deep learning model for **species-aware codon optimization** that int
 
 to generate optimized synonymous codon sequences.
 
+## Model Architecture
+
+![PISCO Architecture](assets/model.png)
 ---
 
 # Installation
