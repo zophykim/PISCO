@@ -194,6 +194,16 @@ PISCO
 
 ---
 
-# Citation
+# License
 
-If you use PISCO in your research, please cite the corresponding paper.
+This software is licensed under a dual-license model:
+1. Academic License: Free for use in academic research, teaching, and non-profit projects. 
+2. Commercial License: Required for any commercial or for-profit use.
+
+Definitions:
+- Academic Use: Usage by educational institutions, students, and non-profit research projects.
+- Commercial Use: Usage for any profit-making activity or by commercial entities.
+
+For more information or to obtain a commercial license, please contact us at license@moleculemind.com
+
+Full License Text: [TODO: Link to License Document]
